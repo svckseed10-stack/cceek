@@ -10,7 +10,7 @@ document.getElementById('nomorForm').addEventListener('submit', async (e) => {
 
     try {
         // Kirim request POST ke serverless function di Vercel
-        const response = await fetch('https://your-vercel-app-url.vercel.app/api/check_status', {
+       const response = await fetch('https://ceknomor-eight.vercel.app/api/check_status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -35,3 +35,4 @@ document.getElementById('nomorForm').addEventListener('submit', async (e) => {
         resultsDiv.innerHTML = 'Terjadi kesalahan jaringan.';
     }
 });
+
