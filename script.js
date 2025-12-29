@@ -1,7 +1,6 @@
 let allResults = [];
 
 function isValidNumber(num) {
-    // Validasi: harus mulai dengan 62 dan hanya angka
     return /^62\d{8,15}$/.test(num);
 }
 
@@ -15,7 +14,6 @@ async function cekNomor() {
         .map(n => n.trim())
         .filter(n => n.length > 0);
 
-    // Validasi format nomor
     const invalidNumbers = nomorList.filter(n => !isValidNumber(n));
     if (invalidNumbers.length > 0) {
         alert("Format nomor salah:\n" + invalidNumbers.join("\n") + "\n\nFormat harus: 628xxxxxxxxx");
@@ -83,7 +81,6 @@ function renderTable() {
 
     filtered.forEach((r, i) => {
         const statusClass = r.status === "AKTIF" ? "status-AKTIF" : "status-TIDAK";
-
         table += `
             <tr>
                 <td>${i + 1}</td>
@@ -97,4 +94,24 @@ function renderTable() {
 
     table += `</table>`;
     hasil.innerHTML = table;
+}
+
+// Fungsi copyAll sesuai filter
+function copyAll() {
+    const filterKode = document.getElementById("filterKode").value;
+    let filtered = allResults;
+
+    if (filterKode !== "ALL") {
+        filtered = allResults.filter(r => String(r.code) === filterKode);
+    }
+
+    if (filtered.length === 0) {
+        alert("Tidak ada nomor untuk disalin");
+        return;
+    }
+
+    const textToCopy = filtered.map(r => r.nomor).join("\n");
+    navigator.clipboard.writeText(textToCopy)
+        .then(() => alert("✅ Nomor berhasil disalin ke clipboard"))
+        .catch(err => alert("❌ Gagal menyalin nomor: " + err));
 }
