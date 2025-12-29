@@ -1,14 +1,26 @@
 let allResults = [];
 
+function isValidNumber(num) {
+    // Validasi: harus mulai dengan 62 dan hanya angka
+    return /^62\d{8,15}$/.test(num);
+}
+
 async function cekNomor() {
     const textarea = document.getElementById("nomor");
     const loading = document.getElementById("loading");
     const hasil = document.getElementById("hasil");
 
-    const nomorList = textarea.value
+    let nomorList = textarea.value
         .split("\n")
         .map(n => n.trim())
         .filter(n => n.length > 0);
+
+    // Validasi format nomor
+    const invalidNumbers = nomorList.filter(n => !isValidNumber(n));
+    if (invalidNumbers.length > 0) {
+        alert("Format nomor salah:\n" + invalidNumbers.join("\n") + "\n\nFormat harus: 628xxxxxxxxx");
+        return;
+    }
 
     if (nomorList.length === 0) {
         alert("Masukkan minimal 1 nomor!");
@@ -21,9 +33,7 @@ async function cekNomor() {
     try {
         const response = await fetch("/api/check_status", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ msisdns: nomorList })
         });
 
@@ -51,7 +61,6 @@ function renderTable() {
     const filterKode = document.getElementById("filterKode").value;
 
     let filtered = allResults;
-
     if (filterKode !== "ALL") {
         filtered = allResults.filter(r => String(r.code) === filterKode);
     }
@@ -73,8 +82,7 @@ function renderTable() {
     `;
 
     filtered.forEach((r, i) => {
-        const statusClass =
-            r.status === "AKTIF" ? "status-AKTIF" : "status-TIDAK";
+        const statusClass = r.status === "AKTIF" ? "status-AKTIF" : "status-TIDAK";
 
         table += `
             <tr>
