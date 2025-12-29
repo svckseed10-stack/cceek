@@ -1,38 +1,70 @@
-document.getElementById('nomorForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+async function cekNomor() {
+    const textarea = document.getElementById("nomor");
+    const loading = document.getElementById("loading");
+    const hasil = document.getElementById("hasil");
 
-    // Ambil input nomor dari form
-    const nomorInput = document.getElementById('nomor').value;
-    const nomorList = nomorInput.split(',').map(n => n.trim());
+    // Ambil nomor per baris
+    const nomorList = textarea.value
+        .split("\n")
+        .map(n => n.trim())
+        .filter(n => n.length > 0);
 
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = 'Memproses...'; // Tampilkan pesan loading
+    if (nomorList.length === 0) {
+        alert("Masukkan minimal 1 nomor!");
+        return;
+    }
+
+    loading.innerText = "⏳ Memproses...";
+    hasil.innerHTML = "";
 
     try {
-        // Kirim request POST ke serverless function di Vercel
-       const response = await fetch('https://ceknomor-eight.vercel.app/api/check_status', {
-            method: 'POST',
+        const response = await fetch("/api/check_status", {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({ msisdns: nomorList })
         });
 
-        // Parse respons JSON
         const data = await response.json();
 
-        // Tampilkan hasil
-        if (data.results) {
-            resultsDiv.innerHTML = '<ul>' + data.results.map(result => {
-                return `<li><strong>${result.nomor}</strong>: ${result.status} (Masa Aktif: ${result.masa_aktif})</li>`;
-            }).join('') + '</ul>';
-        } else {
-            resultsDiv.innerHTML = 'Terjadi kesalahan saat memproses permintaan.';
+        if (!data.results) {
+            loading.innerText = "";
+            hasil.innerHTML = "❌ Gagal mengambil data";
+            return;
         }
 
-    } catch (error) {
-        console.error(error);
-        resultsDiv.innerHTML = 'Terjadi kesalahan jaringan.';
-    }
-});
+        let table = `
+            <table>
+                <tr>
+                    <th>No</th>
+                    <th>Nomor</th>
+                    <th>Status</th>
+                    <th>Masa Aktif</th>
+                    <th>Kode</th>
+                </tr>
+        `;
 
+        data.results.forEach((r, i) => {
+            table += `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${r.nomor}</td>
+                    <td>${r.status}</td>
+                    <td>${r.masa_aktif}</td>
+                    <td>${r.code}</td>
+                </tr>
+            `;
+        });
+
+        table += `</table>`;
+
+        loading.innerText = "";
+        hasil.innerHTML = table;
+
+    } catch (error) {
+        loading.innerText = "";
+        hasil.innerHTML = "❌ Terjadi kesalahan jaringan";
+        console.error(error);
+    }
+}
