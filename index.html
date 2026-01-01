@@ -12,7 +12,7 @@ body {
     padding: 20px;
 }
 .container {
-    max-width: 900px;
+    max-width: 1000px;
     margin: auto;
     background: #fff;
     padding: 20px;
@@ -23,9 +23,14 @@ textarea {
     height: 200px;
     padding: 10px;
 }
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
 button, select {
     padding: 10px;
-    margin-top: 10px;
 }
 button {
     background: #0070f3;
@@ -60,16 +65,10 @@ th {
 }
 .duplikat {
     background: #ffe5e5;
-    color: red;
 }
 .info {
     margin-top: 10px;
     font-weight: bold;
-}
-.actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
 }
 </style>
 </head>
@@ -78,20 +77,18 @@ th {
 <div class="container">
 <h1>Cek Status Nomor Tri</h1>
 
-<textarea id="nomor" placeholder="0895330106330
-0895330106330
+<textarea id="nomor" placeholder="08953301063324
+08953301063324
 085712345678"></textarea>
 
 <div class="actions">
     <button onclick="cekNomor()">Cek Nomor</button>
-
     <select id="filter" onchange="renderTable()">
         <option value="ALL">Semua</option>
         <option value="AKTIF">AKTIF</option>
         <option value="TIDAK">TIDAK TERDAFTAR</option>
     </select>
-
-    <button onclick="copyAktif()">Copy Nomor AKTIF</button>
+    <button onclick="copyAktif()">Copy AKTIF</button>
 </div>
 
 <div id="info" class="info"></div>
@@ -100,17 +97,24 @@ th {
 
 <script>
 let results = [];
+let allNumbers = [];
+let countMap = {};
+
+function formatDate() {
+    const d = new Date();
+    const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+    return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+}
 
 function cekNomor() {
     const textarea = document.getElementById("nomor");
     const lines = textarea.value.split("\n");
 
-    let allNumbers = [];
-    let uniqueNumbers = [];
-    let countMap = {};
+    allNumbers = [];
+    countMap = {};
+    let unique = [];
     let set = new Set();
 
-    // NORMALISASI
     lines.forEach(n => {
         n = n.trim();
         if (!n) return;
@@ -123,24 +127,27 @@ function cekNomor() {
 
         if (!set.has(n)) {
             set.add(n);
-            uniqueNumbers.push(n);
+            unique.push(n);
         }
     });
 
-    textarea.value = uniqueNumbers.join("\n");
+    textarea.value = unique.join("\n");
 
-    // SIMULASI CEK STATUS
-    results = uniqueNumbers.map(n => {
+    // SIMULASI STATUS
+    results = unique.map(n => {
+        const aktif = Math.random() > 0.3;
         return {
             nomor: n,
-            status: Math.random() > 0.3 ? "AKTIF" : "TIDAK"
+            status: aktif ? "AKTIF" : "TIDAK",
+            kode: aktif ? 200 : 404,
+            tanggal: formatDate()
         };
     });
 
-    renderTable(allNumbers, countMap);
+    renderTable();
 }
 
-function renderTable(allNumbers = [], countMap = {}) {
+function renderTable() {
     const filter = document.getElementById("filter").value;
     const hasil = document.getElementById("hasil");
 
@@ -150,26 +157,28 @@ function renderTable(allNumbers = [], countMap = {}) {
             <th>No</th>
             <th>Nomor</th>
             <th>Status</th>
-            <th>Info</th>
+            <th>Tanggal Cek</th>
+            <th>Kode</th>
         </tr>
     `;
 
-    let i = 1;
-    let aktif = 0;
+    let no = 1;
+    let aktifCount = 0;
 
     results.forEach(r => {
         if (filter !== "ALL" && r.status !== filter) return;
 
-        if (r.status === "AKTIF") aktif++;
+        if (r.status === "AKTIF") aktifCount++;
 
         const isDup = countMap[r.nomor] > 1;
 
         html += `
         <tr class="${isDup ? 'duplikat' : ''}">
-            <td>${i++}</td>
+            <td>${no++}</td>
             <td>${r.nomor}</td>
             <td class="status-${r.status}">${r.status}</td>
-            <td>${isDup ? 'Duplikat dihapus' : '-'}</td>
+            <td>${r.tanggal}</td>
+            <td>${r.kode}</td>
         </tr>
         `;
     });
@@ -178,17 +187,17 @@ function renderTable(allNumbers = [], countMap = {}) {
     hasil.innerHTML = html;
 
     document.getElementById("info").innerText =
-        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF: ${aktif}`;
+        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF: ${aktifCount}`;
 }
 
 function copyAktif() {
-    let aktif = results
+    const aktif = results
         .filter(r => r.status === "AKTIF")
         .map(r => r.nomor)
         .join("\n");
 
     navigator.clipboard.writeText(aktif);
-    alert("Nomor AKTIF berhasil dicopy!");
+    alert("Nomor AKTIF berhasil dicopy");
 }
 </script>
 </body>
