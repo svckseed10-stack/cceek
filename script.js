@@ -1,66 +1,53 @@
-let allResults = [];
+<script>
+let dataHasil = [];
 
-function isValidNumber(num) {
-    return /^62\d{8,15}$/.test(num);
+// auto convert 08xxxx → 628xxxx
+function normalizeNumber(num) {
+    num = num.trim();
+    if (num.startsWith("08")) {
+        return "62" + num.substring(1);
+    }
+    return num;
 }
 
-async function cekNomor() {
-    const textarea = document.getElementById("nomor");
+function cekNomor() {
+    const input = document.getElementById("nomor").value.trim();
     const loading = document.getElementById("loading");
-    const hasil = document.getElementById("hasil");
 
-    let nomorList = textarea.value
-        .split("\n")
-        .map(n => n.trim())
-        .filter(n => n.length > 0);
-
-    const invalidNumbers = nomorList.filter(n => !isValidNumber(n));
-    if (invalidNumbers.length > 0) {
-        alert("Format nomor salah:\n" + invalidNumbers.join("\n") + "\n\nFormat harus: 628xxxxxxxxx");
+    if (!input) {
+        alert("Masukkan nomor terlebih dahulu");
         return;
     }
 
-    if (nomorList.length === 0) {
-        alert("Masukkan minimal 1 nomor!");
-        return;
-    }
+    loading.innerText = "Memproses...";
+    dataHasil = [];
 
-    loading.innerText = "⏳ Memproses...";
-    hasil.innerHTML = "";
+    const listNomor = input.split("\n").map(n => normalizeNumber(n));
 
-    try {
-        const response = await fetch("/api/check_status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ msisdns: nomorList })
+    // simulasi response API
+    setTimeout(() => {
+        listNomor.forEach(nomor => {
+            const isAktif = Math.random() > 0.4;
+
+            dataHasil.push({
+                nomor,
+                kode: isAktif ? 200 : 404,
+                status: isAktif ? "AKTIF" : "TIDAK AKTIF"
+            });
         });
 
-        const data = await response.json();
-
-        if (!data.results) {
-            loading.innerText = "";
-            hasil.innerHTML = "❌ Gagal mengambil data";
-            return;
-        }
-
-        allResults = data.results;
         loading.innerText = "";
         renderTable();
-
-    } catch (error) {
-        loading.innerText = "";
-        hasil.innerHTML = "❌ Terjadi kesalahan jaringan";
-        console.error(error);
-    }
+    }, 800);
 }
 
 function renderTable() {
+    const filter = document.getElementById("filterKode").value;
     const hasil = document.getElementById("hasil");
-    const filterKode = document.getElementById("filterKode").value;
 
-    let filtered = allResults;
-    if (filterKode !== "ALL") {
-        filtered = allResults.filter(r => String(r.code) === filterKode);
+    let filtered = dataHasil;
+    if (filter !== "ALL") {
+        filtered = dataHasil.filter(d => d.kode == filter);
     }
 
     if (filtered.length === 0) {
@@ -68,50 +55,53 @@ function renderTable() {
         return;
     }
 
-    let table = `
+    let html = `
         <table>
             <tr>
                 <th>No</th>
                 <th>Nomor</th>
-                <th>Status</th>
-                <th>Masa Aktif</th>
                 <th>Kode</th>
+                <th>Status</th>
             </tr>
     `;
 
-    filtered.forEach((r, i) => {
-        const statusClass = r.status === "AKTIF" ? "status-AKTIF" : "status-TIDAK";
-        table += `
+    filtered.forEach((d, i) => {
+        html += `
             <tr>
                 <td>${i + 1}</td>
-                <td>${r.nomor}</td>
-                <td class="${statusClass}">${r.status}</td>
-                <td>${r.masa_aktif}</td>
-                <td>${r.code}</td>
+                <td>${d.nomor}</td>
+                <td>${d.kode}</td>
+                <td class="status-${d.status.replace(" ", "")}">
+                    ${d.status}
+                </td>
             </tr>
         `;
     });
 
-    table += `</table>`;
-    hasil.innerHTML = table;
+    html += "</table>";
+    hasil.innerHTML = html;
 }
 
-// Fungsi copyAll sesuai filter
+// Copy sesuai filter (ALL / 200 / 404)
 function copyAll() {
-    const filterKode = document.getElementById("filterKode").value;
-    let filtered = allResults;
+    const filter = document.getElementById("filterKode").value;
 
-    if (filterKode !== "ALL") {
-        filtered = allResults.filter(r => String(r.code) === filterKode);
+    let filtered = dataHasil;
+    if (filter !== "ALL") {
+        filtered = dataHasil.filter(d => d.kode == filter);
     }
 
     if (filtered.length === 0) {
-        alert("Tidak ada nomor untuk disalin");
+        alert("Tidak ada data untuk dicopy");
         return;
     }
 
-    const textToCopy = filtered.map(r => r.nomor).join("\n");
-    navigator.clipboard.writeText(textToCopy)
-        .then(() => alert("✅ Nomor berhasil disalin ke clipboard"))
-        .catch(err => alert("❌ Gagal menyalin nomor: " + err));
+    const text = filtered.map(d =>
+        `${d.nomor} | ${d.kode} | ${d.status}`
+    ).join("\n");
+
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Berhasil di-copy sesuai filter!");
+    });
 }
+</script>
