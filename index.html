@@ -86,11 +86,11 @@ th {
 
     <select id="filter" onchange="renderTable()">
         <option value="ALL">Semua Kode</option>
-        <option value="200">Kode 200 (AKTIF)</option>
-        <option value="404">Kode 404 (TIDAK TERDAFTAR)</option>
+        <option value="200">200</option>
+        <option value="404">404</option>
     </select>
 
-    <button onclick="copyAktif()">Copy AKTIF</button>
+    <button onclick="copyAll()">Copy</button>
 </div>
 
 <div id="info" class="info"></div>
@@ -107,7 +107,7 @@ function formatDate(d) {
     return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
 }
 
-// generate expiry 6–24 bulan ke depan
+// expiry 6–24 bulan
 function generateExpiry() {
     const d = new Date();
     d.setMonth(d.getMonth() + Math.floor(Math.random() * 18) + 6);
@@ -123,7 +123,6 @@ function cekNomor() {
     let unique = [];
     let set = new Set();
 
-    // NORMALISASI
     lines.forEach(n => {
         n = n.trim();
         if (!n) return;
@@ -172,17 +171,15 @@ function renderTable() {
     `;
 
     let no = 1;
-    let aktifCount = 0;
+    let tampil = 0;
 
     results.forEach(r => {
         if (filter !== "ALL" && String(r.kode) !== filter) return;
 
-        if (r.kode === 200) aktifCount++;
-
-        const isDup = countMap[r.nomor] > 1;
+        tampil++;
 
         html += `
-        <tr class="${isDup ? 'duplikat' : ''}">
+        <tr>
             <td>${no++}</td>
             <td>${r.nomor}</td>
             <td class="status-${r.kode === 200 ? 'AKTIF' : 'TIDAK'}">${r.status}</td>
@@ -196,17 +193,36 @@ function renderTable() {
     hasil.innerHTML = html;
 
     document.getElementById("info").innerText =
-        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF (200): ${aktifCount}`;
+        `Total input: ${allNumbers.length} | Unik: ${results.length} | Ditampilkan: ${tampil}`;
 }
 
-function copyAktif() {
-    const aktif = results
-        .filter(r => r.kode === 200)
-        .map(r => r.nomor)
-        .join("\n");
+function copyAll() {
+    const filter = document.getElementById("filter").value;
+    let output = "";
 
-    navigator.clipboard.writeText(aktif);
-    alert("Nomor AKTIF (200) berhasil dicopy");
+    // HEADER untuk FULL OUTPUT
+    const header = "No\tNomor\tStatus\tTanggal Kadaluarsa\tKode\n";
+
+    if (filter === "404") {
+        // 👉 HANYA NOMOR
+        output = results
+            .filter(r => r.kode === 404)
+            .map(r => r.nomor)
+            .join("\n");
+    } else {
+        // 👉 FULL OUTPUT (ALL atau 200)
+        output = header;
+        let no = 1;
+
+        results.forEach(r => {
+            if (filter !== "ALL" && String(r.kode) !== filter) return;
+
+            output += `${no++}\t${r.nomor}\t${r.status}\t${r.expired}\t${r.kode}\n`;
+        });
+    }
+
+    navigator.clipboard.writeText(output);
+    alert("Hasil berhasil dicopy sesuai filter");
 }
 </script>
 </body>
