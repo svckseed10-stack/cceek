@@ -83,11 +83,13 @@ th {
 
 <div class="actions">
     <button onclick="cekNomor()">Cek Nomor</button>
+
     <select id="filter" onchange="renderTable()">
-        <option value="ALL">Semua</option>
-        <option value="AKTIF">AKTIF</option>
-        <option value="TIDAK">TIDAK TERDAFTAR</option>
+        <option value="ALL">Semua Kode</option>
+        <option value="200">Kode 200 (AKTIF)</option>
+        <option value="404">Kode 404 (TIDAK TERDAFTAR)</option>
     </select>
+
     <button onclick="copyAktif()">Copy AKTIF</button>
 </div>
 
@@ -100,10 +102,16 @@ let results = [];
 let allNumbers = [];
 let countMap = {};
 
-function formatDate() {
-    const d = new Date();
+function formatDate(d) {
     const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
     return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+}
+
+// generate expiry 6–24 bulan ke depan
+function generateExpiry() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + Math.floor(Math.random() * 18) + 6);
+    return formatDate(d);
 }
 
 function cekNomor() {
@@ -115,6 +123,7 @@ function cekNomor() {
     let unique = [];
     let set = new Set();
 
+    // NORMALISASI
     lines.forEach(n => {
         n = n.trim();
         if (!n) return;
@@ -138,9 +147,9 @@ function cekNomor() {
         const aktif = Math.random() > 0.3;
         return {
             nomor: n,
-            status: aktif ? "AKTIF" : "TIDAK",
+            status: aktif ? "AKTIF" : "TIDAK TERDAFTAR",
             kode: aktif ? 200 : 404,
-            tanggal: formatDate()
+            expired: aktif ? generateExpiry() : "-"
         };
     });
 
@@ -157,7 +166,7 @@ function renderTable() {
             <th>No</th>
             <th>Nomor</th>
             <th>Status</th>
-            <th>Tanggal Cek</th>
+            <th>Tanggal Kadaluarsa</th>
             <th>Kode</th>
         </tr>
     `;
@@ -166,9 +175,9 @@ function renderTable() {
     let aktifCount = 0;
 
     results.forEach(r => {
-        if (filter !== "ALL" && r.status !== filter) return;
+        if (filter !== "ALL" && String(r.kode) !== filter) return;
 
-        if (r.status === "AKTIF") aktifCount++;
+        if (r.kode === 200) aktifCount++;
 
         const isDup = countMap[r.nomor] > 1;
 
@@ -176,8 +185,8 @@ function renderTable() {
         <tr class="${isDup ? 'duplikat' : ''}">
             <td>${no++}</td>
             <td>${r.nomor}</td>
-            <td class="status-${r.status}">${r.status}</td>
-            <td>${r.tanggal}</td>
+            <td class="status-${r.kode === 200 ? 'AKTIF' : 'TIDAK'}">${r.status}</td>
+            <td>${r.expired}</td>
             <td>${r.kode}</td>
         </tr>
         `;
@@ -187,17 +196,17 @@ function renderTable() {
     hasil.innerHTML = html;
 
     document.getElementById("info").innerText =
-        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF: ${aktifCount}`;
+        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF (200): ${aktifCount}`;
 }
 
 function copyAktif() {
     const aktif = results
-        .filter(r => r.status === "AKTIF")
+        .filter(r => r.kode === 200)
         .map(r => r.nomor)
         .join("\n");
 
     navigator.clipboard.writeText(aktif);
-    alert("Nomor AKTIF berhasil dicopy");
+    alert("Nomor AKTIF (200) berhasil dicopy");
 }
 </script>
 </body>
