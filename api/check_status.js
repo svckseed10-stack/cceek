@@ -16,22 +16,32 @@ const klasifikasi_nomor = async (msisdn) => {
             body: JSON.stringify({ msisdn })
         });
 
+        // HTTP 404 → ERROR
         if (response.status === 404) {
-            return ["TIDAK TERDAFTAR", "-", 404];
+            return ["ERROR", "-", 404];
         }
 
+        // selain 200 → ERROR
         if (response.status !== 200) {
             return ["ERROR", "-", response.status];
         }
 
         const res = await response.json();
 
-        if (!res.status) {
-            return ["TIDAK TERDAFTAR", "-", 404];
+        /**
+         * HTTP 200 tapi status false
+         * → tidak terdaftar
+         */
+        if (res.status === false) {
+            return ["TIDAK TERDAFTAR", "-", 200];
         }
 
         const actEnd = res.data?.actEndDate || "";
 
+        /**
+         * tidak ada masa aktif
+         * → kadaluarsa
+         */
         if (!actEnd) {
             return ["KADALUARSA", "-", 200];
         }
@@ -39,12 +49,14 @@ const klasifikasi_nomor = async (msisdn) => {
         const exp = new Date(actEnd);
         const today = new Date();
 
+        // aktif / kadaluarsa
         if (exp >= today) {
             return ["AKTIF", actEnd, 200];
         } else {
             return ["KADALUARSA", actEnd, 200];
         }
-    } catch {
+
+    } catch (err) {
         return ["ERROR", "-", "ERROR"];
     }
 };
@@ -58,13 +70,19 @@ module.exports = async (req, res) => {
         }
 
         const results = await Promise.all(
-            msisdns.map(async msisdn => {
+            msisdns.map(async (msisdn) => {
                 const [status, masa_aktif, code] = await klasifikasi_nomor(msisdn);
-                return { nomor: msisdn, status, masa_aktif, code };
+                return {
+                    nomor: msisdn,
+                    status,
+                    masa_aktif,
+                    code
+                };
             })
         );
 
         res.status(200).json({ results });
+
     } catch (err) {
         res.status(500).json({ error: "Server error" });
     }
