@@ -22,11 +22,12 @@ textarea {
     width: 100%;
     height: 200px;
     padding: 10px;
-    font-size: 14px;
+}
+button, select {
+    padding: 10px;
+    margin-top: 10px;
 }
 button {
-    margin-top: 10px;
-    padding: 10px 15px;
     background: #0070f3;
     color: #fff;
     border: none;
@@ -49,14 +50,26 @@ th {
     background: #0070f3;
     color: #fff;
 }
+.status-AKTIF {
+    color: green;
+    font-weight: bold;
+}
+.status-TIDAK {
+    color: red;
+    font-weight: bold;
+}
 .duplikat {
     background: #ffe5e5;
     color: red;
-    font-weight: bold;
 }
 .info {
     margin-top: 10px;
     font-weight: bold;
+}
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 </style>
 </head>
@@ -69,81 +82,113 @@ th {
 0895330106330
 085712345678"></textarea>
 
-<button onclick="cekNomor()">Cek Nomor</button>
+<div class="actions">
+    <button onclick="cekNomor()">Cek Nomor</button>
+
+    <select id="filter" onchange="renderTable()">
+        <option value="ALL">Semua</option>
+        <option value="AKTIF">AKTIF</option>
+        <option value="TIDAK">TIDAK TERDAFTAR</option>
+    </select>
+
+    <button onclick="copyAktif()">Copy Nomor AKTIF</button>
+</div>
 
 <div id="info" class="info"></div>
 <div id="hasil"></div>
 </div>
 
 <script>
+let results = [];
+
 function cekNomor() {
     const textarea = document.getElementById("nomor");
-    const hasilDiv = document.getElementById("hasil");
-    const infoDiv = document.getElementById("info");
+    const lines = textarea.value.split("\n");
 
-    let lines = textarea.value.split("\n");
-
-    let countMap = {};
     let allNumbers = [];
     let uniqueNumbers = [];
-    let uniqueSet = new Set();
+    let countMap = {};
+    let set = new Set();
 
     // NORMALISASI
-    lines.forEach(nomor => {
-        nomor = nomor.trim();
-        if (!nomor) return;
+    lines.forEach(n => {
+        n = n.trim();
+        if (!n) return;
 
-        nomor = nomor.replace(/\D/g, "");
+        n = n.replace(/\D/g, "");
+        if (n.startsWith("08")) n = "62" + n.substring(1);
 
-        if (nomor.startsWith("08")) {
-            nomor = "62" + nomor.substring(1);
-        }
+        allNumbers.push(n);
+        countMap[n] = (countMap[n] || 0) + 1;
 
-        allNumbers.push(nomor);
-        countMap[nomor] = (countMap[nomor] || 0) + 1;
-
-        if (!uniqueSet.has(nomor)) {
-            uniqueSet.add(nomor);
-            uniqueNumbers.push(nomor);
+        if (!set.has(n)) {
+            set.add(n);
+            uniqueNumbers.push(n);
         }
     });
 
-    // TEXTAREA → HANYA NOMOR UNIK
     textarea.value = uniqueNumbers.join("\n");
 
-    // TABEL HASIL (MENAMPILKAN DUPLIKAT)
+    // SIMULASI CEK STATUS
+    results = uniqueNumbers.map(n => {
+        return {
+            nomor: n,
+            status: Math.random() > 0.3 ? "AKTIF" : "TIDAK"
+        };
+    });
+
+    renderTable(allNumbers, countMap);
+}
+
+function renderTable(allNumbers = [], countMap = {}) {
+    const filter = document.getElementById("filter").value;
+    const hasil = document.getElementById("hasil");
+
     let html = `
-        <table>
+    <table>
         <tr>
             <th>No</th>
             <th>Nomor</th>
             <th>Status</th>
+            <th>Info</th>
         </tr>
     `;
 
-    let duplikatCount = 0;
+    let i = 1;
+    let aktif = 0;
 
-    allNumbers.forEach((nomor, index) => {
-        const isDuplikat = countMap[nomor] > 1;
-        if (isDuplikat) duplikatCount++;
+    results.forEach(r => {
+        if (filter !== "ALL" && r.status !== filter) return;
+
+        if (r.status === "AKTIF") aktif++;
+
+        const isDup = countMap[r.nomor] > 1;
 
         html += `
-        <tr class="${isDuplikat ? 'duplikat' : ''}">
-            <td>${index + 1}</td>
-            <td>${nomor}</td>
-            <td>${isDuplikat ? 'DUPLIKAT (DIHAPUS)' : 'UNIK'}</td>
+        <tr class="${isDup ? 'duplikat' : ''}">
+            <td>${i++}</td>
+            <td>${r.nomor}</td>
+            <td class="status-${r.status}">${r.status}</td>
+            <td>${isDup ? 'Duplikat dihapus' : '-'}</td>
         </tr>
         `;
     });
 
     html += `</table>`;
+    hasil.innerHTML = html;
 
-    hasilDiv.innerHTML = html;
-    infoDiv.innerHTML = `
-        Total input: ${allNumbers.length} |
-        Nomor unik: ${uniqueNumbers.length} |
-        Duplikat dihapus: ${duplikatCount}
-    `;
+    document.getElementById("info").innerText =
+        `Total input: ${allNumbers.length} | Unik: ${results.length} | AKTIF: ${aktif}`;
+}
+
+function copyAktif() {
+    let aktif = results
+        .filter(r => r.status === "AKTIF")
+        .map(r => r.nomor)
+        .join("\n");
+
+    navigator.clipboard.writeText(aktif);
+    alert("Nomor AKTIF berhasil dicopy!");
 }
 </script>
 </body>
