@@ -1,53 +1,94 @@
-<script>
-let dataHasil = [];
+let allResults = [];
 
-// auto convert 08xxxx → 628xxxx
-function normalizeNumber(num) {
-    num = num.trim();
-    if (num.startsWith("08")) {
-        return "62" + num.substring(1);
-    }
-    return num;
+// validasi nomor 62
+function isValidNumber(num) {
+    return /^62\d{8,15}$/.test(num);
 }
 
-function cekNomor() {
-    const input = document.getElementById("nomor").value.trim();
-    const loading = document.getElementById("loading");
+// normalisasi 08 → 62
+function normalizeNumber(num) {
+    num = num.replace(/\s+/g, "");
 
-    if (!input) {
-        alert("Masukkan nomor terlebih dahulu");
+    if (num.startsWith("08")) {
+        return "62" + num.slice(1);
+    }
+
+    if (num.startsWith("62")) {
+        return num;
+    }
+
+    return null;
+}
+
+async function cekNomor() {
+    const textarea = document.getElementById("nomor");
+    const loading = document.getElementById("loading");
+    const hasil = document.getElementById("hasil");
+    const btn = document.getElementById("btnCek");
+
+    let rawList = textarea.value
+        .split("\n")
+        .map(n => n.trim())
+        .filter(n => n.length > 0);
+
+    let nomorList = [];
+    let invalidNumbers = [];
+
+    rawList.forEach(n => {
+        const normalized = normalizeNumber(n);
+        if (!normalized || !isValidNumber(normalized)) {
+            invalidNumbers.push(n);
+        } else {
+            nomorList.push(normalized);
+        }
+    });
+
+    if (invalidNumbers.length > 0) {
+        alert("Format nomor salah:\n" + invalidNumbers.join("\n"));
         return;
     }
 
-    loading.innerText = "Memproses...";
-    dataHasil = [];
+    if (nomorList.length === 0) {
+        alert("Masukkan minimal 1 nomor!");
+        return;
+    }
 
-    const listNomor = input.split("\n").map(n => normalizeNumber(n));
+    btn.disabled = true;
+    loading.innerText = "⏳ Memproses...";
+    hasil.innerHTML = "";
 
-    // simulasi response API
-    setTimeout(() => {
-        listNomor.forEach(nomor => {
-            const isAktif = Math.random() > 0.4;
-
-            dataHasil.push({
-                nomor,
-                kode: isAktif ? 200 : 404,
-                status: isAktif ? "AKTIF" : "TIDAK AKTIF"
-            });
+    try {
+        const response = await fetch("/api/check_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ msisdns: nomorList })
         });
+
+        if (!response.ok) {
+            throw new Error("Server error");
+        }
+
+        const data = await response.json();
+        allResults = data.results || [];
 
         loading.innerText = "";
         renderTable();
-    }, 800);
+    } catch (error) {
+        loading.innerText = "";
+        hasil.innerHTML = "❌ Terjadi kesalahan";
+        console.error(error);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 function renderTable() {
-    const filter = document.getElementById("filterKode").value;
     const hasil = document.getElementById("hasil");
+    const filterKode = document.getElementById("filterKode").value;
 
-    let filtered = dataHasil;
-    if (filter !== "ALL") {
-        filtered = dataHasil.filter(d => d.kode == filter);
+    let filtered = allResults;
+    if (filterKode !== "ALL") {
+        filtered = allResults.filter(r => String(r.code) === filterKode);
     }
 
     if (filtered.length === 0) {
@@ -55,53 +96,63 @@ function renderTable() {
         return;
     }
 
-    let html = `
+    let table = `
         <table>
             <tr>
                 <th>No</th>
                 <th>Nomor</th>
-                <th>Kode</th>
                 <th>Status</th>
+                <th>Masa Aktif</th>
+                <th>Kode</th>
             </tr>
     `;
 
-    filtered.forEach((d, i) => {
-        html += `
+    filtered.forEach((r, i) => {
+        const statusClass =
+            r.status === "AKTIF" ? "status-AKTIF" :
+            r.status === "KADALUARSA" ? "status-KADALUARSA" :
+            "status-TIDAK";
+
+        table += `
             <tr>
                 <td>${i + 1}</td>
-                <td>${d.nomor}</td>
-                <td>${d.kode}</td>
-                <td class="status-${d.status.replace(" ", "")}">
-                    ${d.status}
-                </td>
+                <td>${r.nomor}</td>
+                <td class="${statusClass}">${r.status}</td>
+                <td>${r.masa_aktif}</td>
+                <td>${r.code}</td>
             </tr>
         `;
     });
 
-    html += "</table>";
-    hasil.innerHTML = html;
+    table += `</table>`;
+    hasil.innerHTML = table;
 }
 
-// Copy sesuai filter (ALL / 200 / 404)
+// COPY sesuai filter
 function copyAll() {
-    const filter = document.getElementById("filterKode").value;
+    const filterKode = document.getElementById("filterKode").value;
+    let filtered = allResults;
 
-    let filtered = dataHasil;
-    if (filter !== "ALL") {
-        filtered = dataHasil.filter(d => d.kode == filter);
+    if (filterKode !== "ALL") {
+        filtered = allResults.filter(r => String(r.code) === filterKode);
     }
 
     if (filtered.length === 0) {
-        alert("Tidak ada data untuk dicopy");
+        alert("Tidak ada data untuk disalin");
         return;
     }
 
-    const text = filtered.map(d =>
-        `${d.nomor} | ${d.kode} | ${d.status}`
-    ).join("\n");
+    let textToCopy = "";
 
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Berhasil di-copy sesuai filter!");
-    });
+    if (filterKode === "404") {
+        textToCopy = filtered.map(r => r.nomor).join("\n");
+    } else {
+        textToCopy = filtered.map(r =>
+            `${r.nomor} | ${r.status} | ${r.masa_aktif} | ${r.code}`
+        ).join("\n");
+    }
+
+    navigator.clipboard.writeText(textToCopy)
+        .then(() => alert("✅ Berhasil disalin"))
+        .catch(err => alert("❌ Gagal menyalin: " + err));
 }
-</script>
