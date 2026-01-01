@@ -96,6 +96,11 @@
             font-weight: bold;
         }
 
+        .status-KADALUARSA {
+            color: orange;
+            font-weight: bold;
+        }
+
         @media (max-width: 600px) {
             table {
                 font-size: 12px;
@@ -108,20 +113,21 @@
 <div class="container">
     <h1>Cek Status Nomor Tri</h1>
 
-    <p><b>Format nomor: 628xxxxxxx, 1 nomor per baris</b></p>
+    <p><b>Format nomor: 08xxxx / 62xxxx (1 nomor per baris)</b></p>
 
-    <textarea id="nomor" placeholder="6289518559955
-6289518559956
-6289518559957"></textarea>
+    <textarea id="nomor" spellcheck="false" placeholder="0895429522536
+6289518559956"></textarea>
 
     <div class="actions">
-        <button onclick="cekNomor()">Cek Nomor</button>
+        <button id="btnCek" onclick="cekNomor()">Cek Nomor</button>
+
         <select id="filterKode" onchange="renderTable()">
             <option value="ALL">Semua Kode</option>
             <option value="200">Kode 200 (OK)</option>
             <option value="404">Kode 404 (Tidak Terdaftar)</option>
         </select>
-        <button onclick="copyAll()">Copy All</button>
+
+        <button onclick="copyAll()">Copy</button>
     </div>
 
     <div id="loading" class="loading"></div>
