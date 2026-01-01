@@ -1,229 +1,133 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Cek Status Nomor Tri</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Cek Status Nomor Tri</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f2f4f7;
-    padding: 20px;
-}
-.container {
-    max-width: 1000px;
-    margin: auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-}
-textarea {
-    width: 100%;
-    height: 200px;
-    padding: 10px;
-}
-.actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-}
-button, select {
-    padding: 10px;
-}
-button {
-    background: #0070f3;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-}
-button:hover {
-    background: #0059c1;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
-}
-th {
-    background: #0070f3;
-    color: #fff;
-}
-.status-AKTIF {
-    color: green;
-    font-weight: bold;
-}
-.status-TIDAK {
-    color: red;
-    font-weight: bold;
-}
-.duplikat {
-    background: #ffe5e5;
-}
-.info {
-    margin-top: 10px;
-    font-weight: bold;
-}
-</style>
-</head>
-
-<body>
-<div class="container">
-<h1>Cek Status Nomor Tri</h1>
-
-<textarea id="nomor" placeholder="08953301063324
-08953301063324
-085712345678"></textarea>
-
-<div class="actions">
-    <button onclick="cekNomor()">Cek Nomor</button>
-
-    <select id="filter" onchange="renderTable()">
-        <option value="ALL">Semua Kode</option>
-        <option value="200">200</option>
-        <option value="404">404</option>
-    </select>
-
-    <button onclick="copyAll()">Copy</button>
-</div>
-
-<div id="info" class="info"></div>
-<div id="hasil"></div>
-</div>
-
-<script>
-let results = [];
-let allNumbers = [];
-let countMap = {};
-
-function formatDate(d) {
-    const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-    return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
-}
-
-// expiry 6–24 bulan
-function generateExpiry() {
-    const d = new Date();
-    d.setMonth(d.getMonth() + Math.floor(Math.random() * 18) + 6);
-    return formatDate(d);
-}
-
-function cekNomor() {
-    const textarea = document.getElementById("nomor");
-    const lines = textarea.value.split("\n");
-
-    allNumbers = [];
-    countMap = {};
-    let unique = [];
-    let set = new Set();
-
-    lines.forEach(n => {
-        n = n.trim();
-        if (!n) return;
-
-        n = n.replace(/\D/g, "");
-        if (n.startsWith("08")) n = "62" + n.substring(1);
-
-        allNumbers.push(n);
-        countMap[n] = (countMap[n] || 0) + 1;
-
-        if (!set.has(n)) {
-            set.add(n);
-            unique.push(n);
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f7;
+            padding: 20px;
         }
-    });
 
-    textarea.value = unique.join("\n");
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
 
-    // SIMULASI STATUS
-    results = unique.map(n => {
-        const aktif = Math.random() > 0.3;
-        return {
-            nomor: n,
-            status: aktif ? "AKTIF" : "TIDAK TERDAFTAR",
-            kode: aktif ? 200 : 404,
-            expired: aktif ? generateExpiry() : "-"
-        };
-    });
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
 
-    renderTable();
-}
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
 
-function renderTable() {
-    const filter = document.getElementById("filter").value;
-    const hasil = document.getElementById("hasil");
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
 
-    let html = `
-    <table>
-        <tr>
-            <th>No</th>
-            <th>Nomor</th>
-            <th>Status</th>
-            <th>Tanggal Kadaluarsa</th>
-            <th>Kode</th>
-        </tr>
-    `;
+        button, select {
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
 
-    let no = 1;
-    let tampil = 0;
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+        }
 
-    results.forEach(r => {
-        if (filter !== "ALL" && String(r.kode) !== filter) return;
+        button:hover {
+            background: #0059c1;
+        }
 
-        tampil++;
+        select {
+            border: 1px solid #ccc;
+        }
 
-        html += `
-        <tr>
-            <td>${no++}</td>
-            <td>${r.nomor}</td>
-            <td class="status-${r.kode === 200 ? 'AKTIF' : 'TIDAK'}">${r.status}</td>
-            <td>${r.expired}</td>
-            <td>${r.kode}</td>
-        </tr>
-        `;
-    });
+        .loading {
+            margin-top: 15px;
+            font-weight: bold;
+        }
 
-    html += `</table>`;
-    hasil.innerHTML = html;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
 
-    document.getElementById("info").innerText =
-        `Total input: ${allNumbers.length} | Unik: ${results.length} | Ditampilkan: ${tampil}`;
-}
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
 
-function copyAll() {
-    const filter = document.getElementById("filter").value;
-    let output = "";
+        table th {
+            background: #0070f3;
+            color: white;
+        }
 
-    // HEADER untuk FULL OUTPUT
-    const header = "No\tNomor\tStatus\tTanggal Kadaluarsa\tKode\n";
+        .status-AKTIF {
+            color: green;
+            font-weight: bold;
+        }
 
-    if (filter === "404") {
-        // 👉 HANYA NOMOR
-        output = results
-            .filter(r => r.kode === 404)
-            .map(r => r.nomor)
-            .join("\n");
-    } else {
-        // 👉 FULL OUTPUT (ALL atau 200)
-        output = header;
-        let no = 1;
+        .status-TIDAK {
+            color: red;
+            font-weight: bold;
+        }
 
-        results.forEach(r => {
-            if (filter !== "ALL" && String(r.kode) !== filter) return;
+        @media (max-width: 600px) {
+            table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
 
-            output += `${no++}\t${r.nomor}\t${r.status}\t${r.expired}\t${r.kode}\n`;
-        });
-    }
+<div class="container">
+    <h1>Cek Status Nomor Tri</h1>
 
-    navigator.clipboard.writeText(output);
-    alert("Hasil berhasil dicopy sesuai filter");
-}
-</script>
+    <p><b>Format nomor: 628xxxxxxx, 1 nomor per baris</b></p>
+
+    <textarea id="nomor" placeholder="6289518559955
+6289518559956
+6289518559957"></textarea>
+
+    <div class="actions">
+        <button onclick="cekNomor()">Cek Nomor</button>
+        <select id="filterKode" onchange="renderTable()">
+            <option value="ALL">Semua Kode</option>
+            <option value="200">Kode 200 (OK)</option>
+            <option value="404">Kode 404 (Tidak Terdaftar)</option>
+        </select>
+        <button onclick="copyAll()">Copy All</button>
+    </div>
+
+    <div id="loading" class="loading"></div>
+    <div id="hasil"></div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
