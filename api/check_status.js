@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');  // Install node-fetch untuk request HTTP
-
 const URL = "https://tri.co.id/api/v1/information/sim-status";
 
 const HEADERS = {
@@ -13,13 +11,13 @@ const HEADERS = {
 const klasifikasi_nomor = async (msisdn) => {
     try {
         const response = await fetch(URL, {
-            method: 'POST',
+            method: "POST",
             headers: HEADERS,
-            body: JSON.stringify({ msisdn: msisdn })
+            body: JSON.stringify({ msisdn })
         });
 
         if (response.status === 404) {
-            return ["TIDAK TERDAFTAR", "-", response.status];
+            return ["TIDAK TERDAFTAR", "-", 404];
         }
 
         if (response.status !== 200) {
@@ -29,30 +27,28 @@ const klasifikasi_nomor = async (msisdn) => {
         const res = await response.json();
 
         if (!res.status) {
-            return ["TIDAK TERDAFTAR", "-", response.status];
+            return ["TIDAK TERDAFTAR", "-", 404];
         }
 
-        const data = res.data || {};
-        const act_end = data.actEndDate || "";
+        const actEnd = res.data?.actEndDate || "";
 
-        if (!act_end) {
-            return ["KADALUARSA", "-", response.status];
+        if (!actEnd) {
+            return ["KADALUARSA", "-", 200];
         }
 
-        const exp_date = new Date(act_end);
+        const exp = new Date(actEnd);
         const today = new Date();
 
-        if (exp_date >= today) {
-            return ["AKTIF", act_end, response.status];
+        if (exp >= today) {
+            return ["AKTIF", actEnd, 200];
         } else {
-            return ["KADALUARSA", act_end, response.status];
+            return ["KADALUARSA", actEnd, 200];
         }
-    } catch (error) {
-        return ["TIDAK TERDAFTAR", "-", "ERROR"];
+    } catch {
+        return ["ERROR", "-", "ERROR"];
     }
 };
 
-// Vercel function handler
 module.exports = async (req, res) => {
     try {
         const { msisdns } = req.body;
@@ -61,14 +57,15 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: "No MSISDNs provided" });
         }
 
-        const results = await Promise.all(msisdns.map(async (msisdn) => {
-            const [status, masa_aktif, code] = await klasifikasi_nomor(msisdn);
-            return { nomor: msisdn, status, masa_aktif, code };
-        }));
+        const results = await Promise.all(
+            msisdns.map(async msisdn => {
+                const [status, masa_aktif, code] = await klasifikasi_nomor(msisdn);
+                return { nomor: msisdn, status, masa_aktif, code };
+            })
+        );
 
         res.status(200).json({ results });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Terjadi kesalahan di server' });
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
     }
 };
