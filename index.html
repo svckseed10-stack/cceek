@@ -23,7 +23,6 @@
 
         h1 {
             text-align: center;
-            margin-bottom: 10px;
         }
 
         textarea {
@@ -59,15 +58,6 @@
             background: #0059c1;
         }
 
-        select {
-            border: 1px solid #ccc;
-        }
-
-        .loading {
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -86,20 +76,15 @@
             color: white;
         }
 
-        .status-AKTIF {
-            color: green;
-            font-weight: bold;
-        }
-
-        .status-TIDAK {
+        .duplikat {
+            background: #ffe5e5;
             color: red;
             font-weight: bold;
         }
 
-        @media (max-width: 600px) {
-            table {
-                font-size: 12px;
-            }
+        .info {
+            margin-top: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -108,26 +93,85 @@
 <div class="container">
     <h1>Cek Status Nomor Tri</h1>
 
-    <p><b>Format nomor: 628xxxxxxx, 1 nomor per baris</b></p>
+    <p><b>Format bebas (08 / 62). 1 nomor per baris</b></p>
 
-    <textarea id="nomor" placeholder="6289518559955
-6289518559956
-6289518559957"></textarea>
+    <textarea id="nomor" placeholder="0895330106330
+0895330106330
+085712345678"></textarea>
 
     <div class="actions">
         <button onclick="cekNomor()">Cek Nomor</button>
-        <select id="filterKode" onchange="renderTable()">
-            <option value="ALL">Semua Kode</option>
-            <option value="200">Kode 200 (OK)</option>
-            <option value="404">Kode 404 (Tidak Terdaftar)</option>
-        </select>
-        <button onclick="copyAll()">Copy All</button>
     </div>
 
-    <div id="loading" class="loading"></div>
+    <div id="info" class="info"></div>
     <div id="hasil"></div>
 </div>
 
-<script src="script.js"></script>
+<script>
+function cekNomor() {
+    const textarea = document.getElementById("nomor");
+    const hasilDiv = document.getElementById("hasil");
+    const infoDiv = document.getElementById("info");
+
+    let lines = textarea.value.split("\n");
+
+    let countMap = {};
+    let cleanedList = [];
+
+    // normalisasi & hitung
+    lines.forEach(nomor => {
+        nomor = nomor.trim();
+        if (!nomor) return;
+
+        // hanya angka
+        nomor = nomor.replace(/\D/g, "");
+
+        // auto convert 08 -> 62
+        if (nomor.startsWith("08")) {
+            nomor = "62" + nomor.substring(1);
+        }
+
+        cleanedList.push(nomor);
+        countMap[nomor] = (countMap[nomor] || 0) + 1;
+    });
+
+    // update textarea jadi format rapi
+    textarea.value = cleanedList.join("\n");
+
+    // render tabel
+    let html = `
+        <table>
+            <tr>
+                <th>No</th>
+                <th>Nomor</th>
+                <th>Status</th>
+            </tr>
+    `;
+
+    let duplikatCount = 0;
+
+    cleanedList.forEach((nomor, index) => {
+        const isDuplikat = countMap[nomor] > 1;
+        if (isDuplikat) duplikatCount++;
+
+        html += `
+            <tr class="${isDuplikat ? 'duplikat' : ''}">
+                <td>${index + 1}</td>
+                <td>${nomor}</td>
+                <td>${isDuplikat ? 'DUPLIKAT' : 'UNIK'}</td>
+            </tr>
+        `;
+    });
+
+    html += `</table>`;
+
+    hasilDiv.innerHTML = html;
+    infoDiv.innerHTML = `
+        Total nomor: ${cleanedList.length} |
+        Duplikat ditemukan: ${duplikatCount}
+    `;
+}
+</script>
+
 </body>
 </html>
