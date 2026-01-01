@@ -1,110 +1,78 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Cek Status Nomor Tri</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Cek Status Nomor Tri</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f4f7;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            font-size: 14px;
-            resize: vertical;
-            box-sizing: border-box;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        button, select {
-            padding: 10px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        button {
-            background: #0070f3;
-            color: white;
-            border: none;
-        }
-
-        button:hover {
-            background: #0059c1;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-
-        table th {
-            background: #0070f3;
-            color: white;
-        }
-
-        .duplikat {
-            background: #ffe5e5;
-            color: red;
-            font-weight: bold;
-        }
-
-        .info {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-    </style>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f4f7;
+    padding: 20px;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+textarea {
+    width: 100%;
+    height: 200px;
+    padding: 10px;
+    font-size: 14px;
+}
+button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background: #0070f3;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+button:hover {
+    background: #0059c1;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+th {
+    background: #0070f3;
+    color: #fff;
+}
+.duplikat {
+    background: #ffe5e5;
+    color: red;
+    font-weight: bold;
+}
+.info {
+    margin-top: 10px;
+    font-weight: bold;
+}
+</style>
 </head>
+
 <body>
-
 <div class="container">
-    <h1>Cek Status Nomor Tri</h1>
+<h1>Cek Status Nomor Tri</h1>
 
-    <p><b>Format bebas (08 / 62). 1 nomor per baris</b></p>
-
-    <textarea id="nomor" placeholder="0895330106330
+<textarea id="nomor" placeholder="0895330106330
 0895330106330
 085712345678"></textarea>
 
-    <div class="actions">
-        <button onclick="cekNomor()">Cek Nomor</button>
-    </div>
+<button onclick="cekNomor()">Cek Nomor</button>
 
-    <div id="info" class="info"></div>
-    <div id="hasil"></div>
+<div id="info" class="info"></div>
+<div id="hasil"></div>
 </div>
 
 <script>
@@ -116,50 +84,55 @@ function cekNomor() {
     let lines = textarea.value.split("\n");
 
     let countMap = {};
-    let cleanedList = [];
+    let allNumbers = [];
+    let uniqueNumbers = [];
+    let uniqueSet = new Set();
 
-    // normalisasi & hitung
+    // NORMALISASI
     lines.forEach(nomor => {
         nomor = nomor.trim();
         if (!nomor) return;
 
-        // hanya angka
         nomor = nomor.replace(/\D/g, "");
 
-        // auto convert 08 -> 62
         if (nomor.startsWith("08")) {
             nomor = "62" + nomor.substring(1);
         }
 
-        cleanedList.push(nomor);
+        allNumbers.push(nomor);
         countMap[nomor] = (countMap[nomor] || 0) + 1;
+
+        if (!uniqueSet.has(nomor)) {
+            uniqueSet.add(nomor);
+            uniqueNumbers.push(nomor);
+        }
     });
 
-    // update textarea jadi format rapi
-    textarea.value = cleanedList.join("\n");
+    // TEXTAREA → HANYA NOMOR UNIK
+    textarea.value = uniqueNumbers.join("\n");
 
-    // render tabel
+    // TABEL HASIL (MENAMPILKAN DUPLIKAT)
     let html = `
         <table>
-            <tr>
-                <th>No</th>
-                <th>Nomor</th>
-                <th>Status</th>
-            </tr>
+        <tr>
+            <th>No</th>
+            <th>Nomor</th>
+            <th>Status</th>
+        </tr>
     `;
 
     let duplikatCount = 0;
 
-    cleanedList.forEach((nomor, index) => {
+    allNumbers.forEach((nomor, index) => {
         const isDuplikat = countMap[nomor] > 1;
         if (isDuplikat) duplikatCount++;
 
         html += `
-            <tr class="${isDuplikat ? 'duplikat' : ''}">
-                <td>${index + 1}</td>
-                <td>${nomor}</td>
-                <td>${isDuplikat ? 'DUPLIKAT' : 'UNIK'}</td>
-            </tr>
+        <tr class="${isDuplikat ? 'duplikat' : ''}">
+            <td>${index + 1}</td>
+            <td>${nomor}</td>
+            <td>${isDuplikat ? 'DUPLIKAT (DIHAPUS)' : 'UNIK'}</td>
+        </tr>
         `;
     });
 
@@ -167,11 +140,11 @@ function cekNomor() {
 
     hasilDiv.innerHTML = html;
     infoDiv.innerHTML = `
-        Total nomor: ${cleanedList.length} |
-        Duplikat ditemukan: ${duplikatCount}
+        Total input: ${allNumbers.length} |
+        Nomor unik: ${uniqueNumbers.length} |
+        Duplikat dihapus: ${duplikatCount}
     `;
 }
 </script>
-
 </body>
 </html>
